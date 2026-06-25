@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测绘专业英语智能记忆与阅读系统 - 2025精校完整版</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-soft: #4f772d;
+            --primary-light: #90a955;
+            --bg-soft: #f4f7f6;
+            --text-dark: #31572c;
+        }
+        body {
+            background-color: #f7f9f8;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        .flashcard-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            backface-visibility: hidden;
+        }
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+        .highlight-word {
+            background-color: rgba(254, 240, 138, 0.75);
+            border-bottom: 2px dashed #ca8a04;
+            padding: 0 2px;
+            border-radius: 2px;
+            cursor: help;
+            transition: all 0.2s;
+        }
+        .highlight-word:hover {
+            background-color: rgba(254, 240, 138, 1);
+            color: #000;
+        }
+        /* 隐藏滚动条但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-50 bg-[#31572c] text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i data-lucide="compass" class="w-8 h-8 text-[#ecf39e]"></i>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">Geomatics English</h1>
+                    <p class="text-xs text-[#90a955] font-medium">测绘专业英语智能学习系统 (2025精校完整版)</p>
+                </div>
+            </div>
+            <!-- Tab 切换 -->
+            <nav class="flex bg-[#4f772d] p-1 rounded-lg shadow-inner">
+                <button onclick="switchTab('vocab')" id="btn-tab-vocab" class="tab-btn px-4 py-1.5 text-sm font-semibold rounded-md bg-[#90a955] text-white flex items-center gap-2 transition-all">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>词汇学习
+                </button>
+                <button onclick="switchTab('quiz')" id="btn-tab-quiz" class="tab-btn px-4 py-1.5 text-sm font-semibold rounded-md text-slate-100 flex items-center gap-2 hover:text-white transition-all">
+                    <i data-lucide="award" class="w-4 h-4"></i>自测评估
+                </button>
+                <button onclick="switchTab('reader')" id="btn-tab-reader" class="tab-btn px-4 py-1.5 text-sm font-semibold rounded-md text-slate-100 flex items-center gap-2 hover:text-white transition-all">
+                    <i data-lucide="book-text" class="w-4 h-4"></i>经典阅读
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+
+        <!-- 统计面板 -->
+        <section class="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                <div class="flex items-center gap-4 border-r border-slate-100 md:pr-6">
+                    <div class="p-3 bg-emerald-50 rounded-xl text-[#31572c]">
+                        <i data-lucide="layers" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">系统总词汇量</div>
+                        <div class="text-2xl font-bold text-slate-800" id="stat-total-words">0</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 border-r border-slate-100 md:pr-6">
+                    <div class="p-3 bg-blue-50 rounded-xl text-blue-600">
+                        <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">已标记掌握</div>
+                        <div class="text-2xl font-bold text-slate-800" id="stat-known-words">0</div>
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <div class="flex justify-between text-xs text-slate-500 font-semibold mb-2">
+                        <span class="flex items-center gap-1"><i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-600"></i> 当前复习进度</span>
+                        <span id="stat-progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                        <div id="stat-progress-bar" class="bg-gradient-to-r from-[#90a955] to-[#4f772d] h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-[11px] text-slate-400">数据保存在本地浏览器</span>
+                        <button onclick="resetProgress()" class="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 transition-all">
+                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>重置进度
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 1: 词汇学习模式 -->
+        <section id="tab-vocab" class="tab-content block">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- 左侧类别选择 -->
+                <div class="lg:col-span-1 space-y-3">
+                    <h3 class="text-sm font-bold text-[#31572c] uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i data-lucide="list-filter" class="w-4 h-4"></i> 知识大类筛选
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-2 space-y-1" id="category-list">
+                        <!-- 由JS动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 右侧学习区域 -->
+                <div class="lg:col-span-3 space-y-6">
+                    <!-- 控制过滤器 -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-semibold text-slate-700">过滤条件：</span>
+                            <div class="flex bg-slate-100 p-1 rounded-lg text-xs font-semibold">
+                                <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1 rounded bg-white text-slate-800 shadow-sm transition-all">全部</button>
+                                <button onclick="setFilter('unlearned')" id="filter-unlearned" class="px-3 py-1 rounded text-slate-500 hover:text-slate-800 transition-all">未掌握</button>
+                                <button onclick="setFilter('learned')" id="filter-learned" class="px-3 py-1 rounded text-slate-500 hover:text-slate-800 transition-all">已掌握</button>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 font-medium">
+                            当前筛选分类下包含: <span id="category-word-count" class="font-bold text-[#31572c]">0</span> 个词汇
+                        </div>
+                    </div>
+
+                    <!-- 记忆卡片显示容器 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" id="cards-container">
+                        <!-- 卡片动态渲染 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: 自测评估模式 -->
+        <section id="tab-quiz" class="tab-content hidden">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <!-- 答题设置与选择 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
+                    <h3 class="text-lg font-bold text-[#31572c] mb-4 flex items-center gap-2 border-b pb-2">
+                        <i data-lucide="settings" class="w-5 h-5"></i> 选择测试类型
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <button onclick="selectQuizMode('mcq_en')" id="btn-mode-mcq_en" class="quiz-mode-btn p-4 rounded-xl border-2 border-[#4f772d] bg-[#f4f7f6] text-[#31572c] font-bold text-center transition-all flex flex-col items-center gap-2">
+                            <i data-lucide="help-circle" class="w-6 h-6"></i>
+                            <span>英译中 选择题</span>
+                        </button>
+                        <button onclick="selectQuizMode('mcq_zh')" id="btn-mode-mcq_zh" class="quiz-mode-btn p-4 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-center transition-all flex flex-col items-center gap-2 hover:border-emerald-300">
+                            <i data-lucide="languages" class="w-6 h-6"></i>
+                            <span>中译英 选择题</span>
+                        </button>
+                        <button onclick="selectQuizMode('spelling')" id="btn-mode-spelling" class="quiz-mode-btn p-4 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-center transition-all flex flex-col items-center gap-2 hover:border-emerald-300">
+                            <i data-lucide="keyboard" class="w-6 h-6"></i>
+                            <span>看中拼英 拼写题</span>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-xs text-slate-500 font-semibold block">出题词源范畴：</span>
+                            <span class="text-sm font-bold text-slate-800" id="quiz-source-label">当前选定分类下的全部词汇</span>
+                        </div>
+                        <button onclick="startQuiz()" class="px-6 py-2.5 bg-[#4f772d] text-white hover:bg-[#31572c] font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>开始新测试
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 答题卡片主区域 -->
+                <div id="quiz-box" class="bg-white p-8 rounded-2xl shadow-md border border-slate-100 hidden relative overflow-hidden">
+                    <!-- 顶端状态 -->
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs bg-emerald-50 text-[#31572c] px-2.5 py-1 rounded-full font-bold">第 <span id="quiz-current-num">1</span>/<span id="quiz-total-num">10</span> 题</span>
+                            <span id="quiz-category-tag" class="text-xs text-slate-400 font-semibold"></span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-500 block font-semibold">实时正确率</span>
+                            <span class="text-lg font-black text-emerald-600" id="quiz-accuracy">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- 问题核心 -->
+                    <div class="my-6">
+                        <p class="text-sm text-slate-400 font-bold tracking-wider mb-2">QUESTION / 题目</p>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-wide font-mono" id="quiz-question-text">Question</h2>
+                    </div>
+
+                    <!-- MCQ 选项区域 -->
+                    <div id="quiz-options" class="grid grid-cols-1 gap-3.5 my-6">
+                        <!-- 选择题选项由JS生成 -->
+                    </div>
+
+                    <!-- 拼写输入区域 -->
+                    <div id="quiz-spelling" class="my-6 hidden space-y-4">
+                        <input type="text" id="spelling-input" autocomplete="off" class="w-full px-5 py-4 text-xl border-2 border-slate-200 rounded-xl focus:border-[#4f772d] focus:outline-none transition-all placeholder:text-slate-300 font-mono" placeholder="请在此输入完整英文单词...">
+                        <div class="flex gap-3">
+                            <button onclick="submitSpelling()" class="flex-1 py-3 bg-[#4f772d] hover:bg-[#31572c] text-white font-bold rounded-xl shadow transition-all">提交拼写答案</button>
+                            <button onclick="skipSpelling()" class="px-5 py-3 border border-slate-200 text-slate-500 font-bold rounded-xl hover:bg-slate-50 transition-all">跳过本题</button>
+                        </div>
+                    </div>
+
+                    <!-- 回馈提示 -->
+                    <div id="quiz-feedback" class="p-4 rounded-xl hidden text-sm font-semibold mb-6">
+                        反馈文本
+                    </div>
+
+                    <!-- 下一题控制器 -->
+                    <div class="flex justify-end pt-4 border-t border-slate-100">
+                        <button id="btn-next-quiz" onclick="nextQuizQuestion()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-xl transition-all hidden flex items-center gap-2">
+                            下一题 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 结束成绩统计 -->
+                <div id="quiz-result" class="bg-white p-8 rounded-2xl shadow-md border border-slate-100 hidden text-center space-y-6">
+                    <div class="p-4 bg-emerald-50 rounded-full inline-block text-[#31572c] animate-bounce">
+                        <i data-lucide="trophy" class="w-16 h-16"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-800">测验挑战完成！</h2>
+                    <p class="text-slate-500 max-w-md mx-auto text-sm">恭喜！您成功完成了本次测绘英语专项词汇练习，这有助于增强您的场景记忆深度。</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block font-medium">答对题目</span>
+                            <span class="text-2xl font-bold text-slate-800"><span id="result-correct">0</span>/<span id="result-total">10</span></span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block font-medium">综合正确率</span>
+                            <span class="text-2xl font-bold text-emerald-600" id="result-accuracy">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-center gap-4">
+                        <button onclick="startQuiz()" class="px-6 py-2.5 bg-[#4f772d] hover:bg-[#31572c] text-white font-bold rounded-xl transition-all">再练一次</button>
+                        <button onclick="switchTab('vocab')" class="px-6 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all">返回词汇卡</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: 经典文段阅读 -->
+        <section id="tab-reader" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- 左侧文章导航 -->
+                <div class="lg:col-span-4 space-y-3">
+                    <h3 class="text-sm font-bold text-[#31572c] uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i data-lucide="book-marked" class="w-4 h-4"></i> 精选考纲篇章 (12篇完整收录)
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-2 space-y-1 max-h-[600px] overflow-y-auto" id="article-list">
+                        <!-- 文章目录动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 右侧文本内容与对照翻译 -->
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
+                        <div class="flex justify-between items-start border-b pb-4 mb-6">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800" id="reader-title">文章标题</h2>
+                                <p class="text-xs text-slate-400 mt-1 font-semibold flex items-center gap-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> 测绘专业英语官方指定研读篇章</p>
+                            </div>
+                            <span class="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i> 重点词汇高亮
+                            </span>
+                        </div>
+
+                        <!-- 核心句段逐段解析 -->
+                        <div id="reader-content" class="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+                            <!-- 文章段落动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 底部标识 -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-6 mt-16">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 font-semibold space-y-1">
+            <p>© 2026 测绘专业英语智能背词阅读辅助系统</p>
+            <p>数据源自测绘专业考纲指定教材 · 辅助地信/大地测量/遥感及城市规划学习</p>
+        </div>
+    </footer>
+
+    <!-- JS 逻辑实现 -->
+    <script>
+        // ================= 完整考纲词汇库 =================
+        const VOCAB_DATA = [
+            // 1. Why Go to College
+            { id: 1, english: "disinterested", chinese: "无私的，公正的", category: "Why Go to College" },
+            { id: 2, english: "intellectual", chinese: "智力的，理智的", category: "Why Go to College" },
+            { id: 3, english: "curiosity", chinese: "好奇心", category: "Why Go to College" },
+            { id: 4, english: "curriculum", chinese: "课程", category: "Why Go to College" },
+            { id: 5, english: "diploma", chinese: "文凭", category: "Why Go to College" },
+            { id: 6, english: "degree", chinese: "学位", category: "Why Go to College" },
+            { id: 7, english: "algebra", chinese: "代数", category: "Why Go to College" },
+            { id: 8, english: "geometry", chinese: "几何", category: "Why Go to College" },
+            { id: 9, english: "trigonometry", chinese: "三角学", category: "Why Go to College" },
+            { id: 10, english: "calculus", chinese: "微积分", category: "Why Go to College" },
+            { id: 11, english: "analytical", chinese: "分析的", category: "Why Go to College" },
+            { id: 12, english: "Least Squares Adjustments", chinese: "最小二乘法平差", category: "Why Go to College" },
+            { id: 13, english: "fieldwork", chinese: "实地工作，野外作业", category: "Why Go to College" },
+            { id: 14, english: "layout", chinese: "布局，规划", category: "Why Go to College" },
+            { id: 15, english: "geomatics", chinese: "测绘学", category: "Geomatics" },
+
+            // 2. Digital Earth
+            { id: 16, english: "inhabitant", chinese: "居民", category: "Digital Earth" },
+            { id: 17, english: "crime", chinese: "犯罪", category: "Digital Earth" },
+            { id: 18, english: "scale", chinese: "规模，比例尺", category: "Digital Earth" },
+            { id: 19, english: "conjunction", chinese: "联合，连词", category: "Digital Earth" },
+            { id: 20, english: "initiative", chinese: "倡议，主动性", category: "Digital Earth" },
+            { id: 21, english: "planet", chinese: "行星", category: "Digital Earth" },
+            { id: 22, english: "executive", chinese: "管理人员，执行官", category: "Digital Earth" },
+            { id: 23, english: "seamlessly", chinese: "无缝衔接地", category: "Digital Earth" },
+            { id: 24, english: "archive", chinese: "档案，存档", category: "Digital Earth" },
+            { id: 25, english: "access", chinese: "使用权，获取", category: "Digital Earth" },
+            { id: 26, english: "relevance", chinese: "关联，实用性", category: "Digital Earth" },
+            { id: 27, english: "raw", chinese: "原始的，生的", category: "Digital Earth" },
+            { id: 28, english: "interoperable", chinese: "可互操作的", category: "Digital Earth" },
+            { id: 29, english: "terminology", chinese: "术语", category: "Digital Earth" },
+            { id: 30, english: "underlie", chinese: "作为...的底层基础", category: "Digital Earth" },
+            { id: 31, english: "intermediary", chinese: "中介", category: "Digital Earth" },
+            { id: 32, english: "expansion", chinese: "扩张，扩大", category: "Digital Earth" },
+            { id: 33, english: "scenario", chinese: "设想，方案", category: "Digital Earth" },
+            { id: 34, english: "installation", chinese: "安装，设备", category: "Digital Earth" },
+            { id: 35, english: "retrieve", chinese: "取回，检索", category: "Digital Earth" },
+            { id: 36, english: "catalog", chinese: "目录", category: "Digital Earth" },
+            { id: 37, english: "roam", chinese: "漫游", category: "Digital Earth" },
+            { id: 38, english: "interface", chinese: "界面", category: "Digital Earth" },
+            { id: 39, english: "consensus", chinese: "共识", category: "Digital Earth" },
+            { id: 40, english: "framework", chinese: "框架", category: "Digital Earth" },
+            { id: 41, english: "vision", chinese: "愿景，想象", category: "Digital Earth" },
+            { id: 42, english: "unlock", chinese: "解锁，开启", category: "Digital Earth" },
+            { id: 43, english: "enhance", chinese: "提高，增强", category: "Digital Earth" },
+            { id: 44, english: "generic", chinese: "通用的，一般的", category: "Digital Earth" },
+            { id: 45, english: "protocol", chinese: "协议", category: "Digital Earth" },
+            { id: 46, english: "mature", chinese: "成熟的", category: "Digital Earth" },
+            { id: 47, english: "metadata", chinese: "元数据", category: "Digital Earth" },
+            { id: 48, english: "collaborations", chinese: "合作", category: "Digital Earth" },
+            { id: 49, english: "dissemination", chinese: "传播", category: "Digital Earth" },
+
+            // 3. Geomatics
+            { id: 50, english: "gathering", chinese: "收集，聚集", category: "Geomatics" },
+            { id: 51, english: "storing", chinese: "存储", category: "Geomatics" },
+            { id: 52, english: "processing", chinese: "处理", category: "Geomatics" },
+            { id: 53, english: "delivering", chinese: "传递", category: "Geomatics" },
+            { id: 54, english: "geodesy", chinese: "大地测量学", category: "Geodesy" },
+            { id: 55, english: "surveying", chinese: "测量学", category: "Surveying" },
+            { id: 56, english: "mapping", chinese: "制图，绘图", category: "Geomatics" },
+            { id: 57, english: "positioning", chinese: "定位", category: "Geomatics" },
+            { id: 58, english: "navigation", chinese: "导航", category: "Geomatics" },
+            { id: 59, english: "cartography", chinese: "地图制图学", category: "Cartography" },
+            { id: 60, english: "remote sensing", chinese: "遥感", category: "Geomatics" },
+            { id: 61, english: "photogrammetry", chinese: "摄影测量学", category: "Photogrammetry" },
+            { id: 62, english: "global positioning system", chinese: "全球定位系统 (GPS)", category: "Geomatics" },
+            { id: 63, english: "coin", chinese: "首次提出，使用", category: "Geomatics" },
+            { id: 64, english: "International Standards Organization", chinese: "国际标准化组织 (ISO)", category: "Geomatics" },
+            { id: 65, english: "Royal Institution of Chartered Surveyors", chinese: "皇家特许测绘师学会 (RICS)", category: "Geomatics" },
+            { id: 66, english: "terrestrial", chinese: "陆地的", category: "Geomatics" },
+            { id: 67, english: "airborne", chinese: "机载的，航空的", category: "Geomatics" },
+            { id: 68, english: "visibility", chinese: "可见性，可见度", category: "Geomatics" },
+
+            // 4. Surveying
+            { id: 69, english: "exclusively", chinese: "排他地，专门地", category: "Surveying" },
+            { id: 70, english: "ownership", chinese: "所有权", category: "Surveying" },
+            { id: 71, english: "building and construction", chinese: "工程建筑，建设", category: "Surveying" },
+            { id: 72, english: "legal boundary", chinese: "法律边界", category: "Surveying" },
+            { id: 73, english: "definition", chinese: "定义", category: "Surveying" },
+            { id: 74, english: "overflow", chinese: "溢出，泛滥", category: "Surveying" },
+            { id: 75, english: "squareness", chinese: "正方形，直角性", category: "Surveying" },
+            { id: 76, english: "deformation", chinese: "变形", category: "Surveying" },
+            { id: 77, english: "plat", chinese: "地基图，小块地", category: "Surveying" },
+            { id: 78, english: "subdivision plat", chinese: "细分地基图，地籍图", category: "Surveying" },
+            { id: 79, english: "foundation", chinese: "基础，地基", category: "Surveying" },
+            { id: 80, english: "mortgage", chinese: "抵押，贷款", category: "Surveying" },
+            { id: 81, english: "title company", chinese: "产权公司", category: "Surveying" },
+            { id: 82, english: "lending institution", chinese: "借款机构", category: "Surveying" },
+            { id: 83, english: "encroach", chinese: "侵占", category: "Surveying" },
+            { id: 84, english: "driveway", chinese: "车道", category: "Surveying" },
+            { id: 85, english: "subdivision", chinese: "分区，地块细分", category: "Surveying" },
+            { id: 86, english: "developer", chinese: "开发商", category: "Surveying" },
+            { id: 87, english: "topographic", chinese: "地形学的", category: "Topography" },
+            { id: 88, english: "topography", chinese: "地形学", category: "Topography" },
+            { id: 89, english: "contour", chinese: "轮廓线，等高线", category: "Topography" },
+            { id: 90, english: "total station", chinese: "全站仪", category: "Theodolite" },
+            { id: 91, english: "electronic distance measuring", chinese: "电子测距", category: "Theodolite" },
+            { id: 92, english: "tripod", chinese: "三脚架", category: "Theodolite" },
+            { id: 93, english: "civil engineering", chinese: "土木工程", category: "Surveying" },
+            { id: 94, english: "residential area", chinese: "居民区", category: "Surveying" },
+            { id: 95, english: "private property", chinese: "私人财产", category: "Surveying" },
+            { id: 96, english: "political division", chinese: "行政部门，政治区划", category: "Surveying" },
+            { id: 97, english: "delicate instrument", chinese: "精密仪器", category: "Surveying" },
+            { id: 98, english: "accuracy", chinese: "准确度", category: "Surveying" },
+            { id: 99, english: "precision", chinese: "精度，精密", category: "Surveying" },
+            { id: 100, english: "registered surveyor", chinese: "注册测绘师", category: "Surveying" },
+            { id: 101, english: "dictate", chinese: "命令，支配", category: "Surveying" },
+
+            // 5. Figure of the Earth
+            { id: 102, english: "irregularity", chinese: "不规则性", category: "Figure of the Earth" },
+            { id: 103, english: "prohibitive", chinese: "过高的，禁止性的", category: "Figure of the Earth" },
+            { id: 104, english: "spherical", chinese: "球状的", category: "Figure of the Earth" },
+            { id: 105, english: "sphere", chinese: "球形", category: "Figure of the Earth" },
+            { id: 106, english: "astronomical", chinese: "天文的", category: "Figure of the Earth" },
+            { id: 107, english: "navigational", chinese: "导航的", category: "Figure of the Earth" },
+            { id: 108, english: "geodesist", chinese: "大地测量学家", category: "Figure of the Earth" },
+            { id: 109, english: "radius", chinese: "半径", category: "Figure of the Earth" },
+            { id: 110, english: "equator", chinese: "赤道", category: "Figure of the Earth" },
+            { id: 111, english: "equation", chinese: "等式", category: "Figure of the Earth" },
+            { id: 112, english: "datum", chinese: "基准", category: "Figure of the Earth" },
+            { id: 113, english: "uneven", chinese: "不均匀的，不平整的", category: "Figure of the Earth" },
+            { id: 114, english: "levelling", chinese: "整平，水准测量", category: "Theodolite" },
+            { id: 115, english: "normal", chinese: "法线，正规的", category: "Theodolite" },
+            { id: 116, english: "curvature", chinese: "曲率", category: "Figure of the Earth" },
+            { id: 117, english: "ellipsoid", chinese: "椭球体", category: "Figure of the Earth" },
+            { id: 118, english: "ellipse", chinese: "椭圆", category: "Figure of the Earth" },
+            { id: 119, english: "launch", chinese: "发射", category: "Figure of the Earth" },
+            { id: 120, english: "bulge", chinese: "凸起", category: "Figure of the Earth" },
+            { id: 121, english: "distort", chinese: "扭曲变形", category: "Figure of the Earth" },
+            { id: 122, english: "axis", chinese: "轴", category: "Theodolite" },
+            { id: 123, english: "spinning", chinese: "自转的，旋转的", category: "Figure of the Earth" },
+            { id: 124, english: "coordinate axis", chinese: "坐标轴", category: "Figure of the Earth" },
+            { id: 125, english: "geoid", chinese: "大地水准面", category: "Figure of the Earth" },
+            { id: 126, english: "gravitation", chinese: "万有引力", category: "Figure of the Earth" },
+            { id: 127, english: "gravity", chinese: "重力", category: "Figure of the Earth" },
+            { id: 128, english: "gravity field", chinese: "重力场", category: "Mean Sea Level" },
+            { id: 129, english: "perpendicular", chinese: "相互垂直的", category: "Theodolite" },
+            { id: 130, english: "flat earth", chinese: "地平说", category: "Figure of the Earth" },
+            { id: 131, english: "plane table survey", chinese: "平板仪测量", category: "Figure of the Earth" },
+            { id: 132, english: "geometrical", chinese: "几何的", category: "Figure of the Earth" },
+            { id: 133, english: "flattening", chinese: "扁率", category: "Figure of the Earth" },
+            { id: 134, english: "geoid undulation", chinese: "大地水准面起伏差异", category: "Figure of the Earth" },
+            { id: 135, english: "deflection of the vertical", chinese: "垂线偏差", category: "Figure of the Earth" },
+
+            // 6. Mean Sea Level
+            { id: 136, english: "tide gauge", chinese: "自动验潮仪", category: "Mean Sea Level" },
+            { id: 137, english: "current", chinese: "海流，水流", category: "Mean Sea Level" },
+            { id: 138, english: "stay current", chinese: "与时俱进", category: "Mean Sea Level" },
+            { id: 139, english: "aviation", chinese: "航空业", category: "Mean Sea Level" },
+            { id: 140, english: "aviator", chinese: "飞行员", category: "Mean Sea Level" },
+            { id: 141, english: "connote", chinese: "意味着", category: "Mean Sea Level" },
+            { id: 142, english: "salinity", chinese: "盐度", category: "Mean Sea Level" },
+            { id: 143, english: "constant", chinese: "常数，常量", category: "Mean Sea Level" },
+            { id: 144, english: "anomaly", chinese: "异常", category: "Mean Sea Level" },
+            { id: 145, english: "tectonic", chinese: "地质构造有关的", category: "Mean Sea Level" },
+            { id: 146, english: "subsidence", chinese: "下沉，沉降", category: "Mean Sea Level" },
+            { id: 147, english: "equipotential surface", chinese: "等势面", category: "Mean Sea Level" },
+            { id: 148, english: "sea surface topography", chinese: "海面地形", category: "Mean Sea Level" },
+            { id: 149, english: "gravitational anomaly", chinese: "重力异常", category: "Mean Sea Level" },
+            { id: 150, english: "eustatic", chinese: "全球性海面升降", category: "Mean Sea Level" },
+            { id: 151, english: "thermal buoyancy", chinese: "热浮力", category: "Mean Sea Level" },
+            { id: 152, english: "deposit", chinese: "沉积，存放", category: "Mean Sea Level" },
+            { id: 153, english: "isostatic", chinese: "地壳均衡的", category: "Mean Sea Level" },
+            { id: 154, english: "paleoclimatologist", chinese: "古气候学家", category: "Mean Sea Level" },
+            { id: 155, english: "planetologist", chinese: "行星学家", category: "Mean Sea Level" },
+            { id: 156, english: "mean sea level", chinese: "平均海水面 (MSL)", category: "Mean Sea Level" },
+
+            // 7. Topography
+            { id: 157, english: "lay of the land", chinese: "地形起伏", category: "Topography" },
+            { id: 158, english: "physiogeographic", chinese: "自然地理的", category: "Topography" },
+            { id: 159, english: "elevation", chinese: "高程", category: "Topography" },
+            { id: 160, english: "orientation", chinese: "方位，朝向", category: "Topography" },
+            { id: 161, english: "slope", chinese: "坡度", category: "Topography" },
+            { id: 162, english: "relief", chinese: "高低起伏，凹凸", category: "Topography" },
+            { id: 163, english: "hachure", chinese: "晕滃，起伏线", category: "Topography" },
+            { id: 164, english: "topology", chinese: "拓扑，地形", category: "Topography" },
+            { id: 165, english: "USGS", chinese: "美国地质调查局", category: "Topography" },
+            { id: 166, english: "hydrology", chinese: "水文学", category: "Topography" },
+            { id: 167, english: "impinge", chinese: "撞击，冲击", category: "Topography" },
+            { id: 168, english: "soil conservation", chinese: "水土保持", category: "Topography" },
+            { id: 169, english: "contour plowing", chinese: "等高耕作", category: "Topography" },
+            { id: 170, english: "tectonic process", chinese: "构造作用", category: "Topography" },
+            { id: 171, english: "erosional process", chinese: "侵蚀作用", category: "Topography" },
+            { id: 172, english: "contiguous", chinese: "连续的，接壤的", category: "Topography" },
+            { id: 173, english: "minute", chinese: "微小的，详细的", category: "Topography" },
+
+            // 8. Theodolite
+            { id: 174, english: "theodolite", chinese: "经纬仪", category: "Theodolite" },
+            { id: 175, english: "horizontal angle", chinese: "水平角", category: "Theodolite" },
+            { id: 176, english: "vertical angle", chinese: "竖直角", category: "Theodolite" },
+            { id: 177, english: "trunnion axis", chinese: "支轴，横轴", category: "Theodolite" },
+            { id: 178, english: "vertical axis", chinese: "竖轴", category: "Theodolite" },
+            { id: 179, english: "horizontal axis", chinese: "水平轴", category: "Theodolite" },
+            { id: 180, english: "sight axis", chinese: "视准轴", category: "Theodolite" },
+            { id: 181, english: "objective", chinese: "物镜", category: "Theodolite" },
+            { id: 182, english: "focal plane", chinese: "焦平面", category: "Theodolite" },
+            { id: 183, english: "collimation error", chinese: "视准轴误差/垂直误差", category: "Theodolite" },
+            { id: 184, english: "graduated circle", chinese: "刻度盘", category: "Theodolite" },
+            { id: 185, english: "vertical circle", chinese: "垂直度盘", category: "Theodolite" },
+            { id: 186, english: "index error", chinese: "指标差，指针误差", category: "Theodolite" },
+            { id: 187, english: "calibration", chinese: "校准", category: "Theodolite" },
+            { id: 188, english: "forced centering plate", chinese: "强制居中板", category: "Theodolite" },
+            { id: 189, english: "tribrach", chinese: "三脚基座", category: "Theodolite" },
+            { id: 190, english: "spirit level", chinese: "水平仪，水准器", category: "Theodolite" },
+            { id: 191, english: "triangulation", chinese: "三角测量", category: "Theodolite" },
+            { id: 192, english: "standpoint", chinese: "测站，观点", category: "Theodolite" },
+            { id: 193, english: "superimpose", chinese: "重叠，覆盖", category: "Theodolite" },
+            { id: 194, english: "photogrammetric", chinese: "摄影测量的", category: "Theodolite" },
+            { id: 195, english: "block adjustment", chinese: "区域网平差", category: "Theodolite" },
+            { id: 196, english: "stereo pairs", chinese: "立体像对", category: "Theodolite" },
+            { id: 197, english: "aerial photograph", chinese: "航空相片", category: "Theodolite" },
+            { id: 198, english: "polar coordinate", chinese: "极坐标", category: "Theodolite" },
+
+            // 9. Cartography
+            { id: 199, english: "revolutionize", chinese: "彻底改变", category: "Cartography" },
+            { id: 200, english: "illustration", chinese: "插画，说明", category: "Cartography" },
+            { id: 201, english: "analog", chinese: "模拟，类比", category: "Cartography" },
+            { id: 202, english: "premise", chinese: "前提", category: "Cartography" },
+            { id: 203, english: "millennium", chinese: "一千年", category: "Cartography" },
+            { id: 204, english: "connectedness", chinese: "连通性", category: "Cartography" },
+            { id: 205, english: "adjacency", chinese: "邻接性", category: "Cartography" },
+            { id: 206, english: "periodic", chinese: "周期的", category: "Cartography" },
+            { id: 207, english: "circumference", chinese: "周长", category: "Cartography" },
+            { id: 208, english: "superstition", chinese: "迷信，猜想", category: "Cartography" },
+            { id: 209, english: "cosmological", chinese: "宇宙学的", category: "Cartography" },
+            { id: 210, english: "dogma", chinese: "教义", category: "Cartography" },
+            { id: 211, english: "globalism", chinese: "全球主义", category: "Cartography" },
+            { id: 212, english: "ply", chinese: "往返于", category: "Cartography" },
+            { id: 213, english: "interrelationship", chinese: "相互关系", category: "Cartography" },
+            { id: 214, english: "topological relationship", chinese: "拓扑关系", category: "Cartography" },
+            { id: 215, english: "plotter", chinese: "绘图仪", category: "Cartography" },
+            { id: 216, english: "stereo plotter", chinese: "立体绘图仪", category: "Cartography" },
+            { id: 217, english: "visualization", chinese: "可视化", category: "Cartography" },
+            { id: 218, english: "heliocentric", chinese: "日心说的", category: "Cartography" },
+            { id: 219, english: "lunar eclipse", chinese: "月食", category: "Cartography" },
+            { id: 220, english: "equirectangular", chinese: "等距圆柱投影", category: "Cartography" },
+            { id: 221, english: "conic", chinese: "圆锥的", category: "Cartography" },
+            { id: 222, english: "portolano", chinese: "航海图", category: "Cartography" },
+            { id: 223, english: "containment", chinese: "包含性", category: "Cartography" },
+            { id: 224, english: "heliocentric theory", chinese: "日心说理论", category: "Cartography" },
+            { id: 225, english: "probability theory", chinese: "概率论", category: "Cartography" },
+            { id: 226, english: "printing press", chinese: "印刷机", category: "Cartography" },
+            { id: 227, english: "photochemical technology", chinese: "光化学技术", category: "Cartography" },
+            { id: 228, english: "general cartography", chinese: "普通地图制图学", category: "Cartography" },
+            { id: 229, english: "thematic cartography", chinese: "专题地图制图学", category: "Cartography" },
+
+            // 10. Geodesy
+            { id: 230, english: "geodynamic", chinese: "地球动力学的", category: "Geodesy" },
+            { id: 231, english: "polar motion", chinese: "极移", category: "Geodesy" },
+            { id: 232, english: "crustal motion", chinese: "地壳运动", category: "Geodesy" },
+            { id: 233, english: "physical geodesy", chinese: "物理大地测量学", category: "Geodesy" },
+            { id: 234, english: "geocentric", chinese: "地心的", category: "Geodesy" },
+            { id: 235, english: "origin", chinese: "原点，起点", category: "Geodesy" },
+            { id: 236, english: "geocentre", chinese: "地心", category: "Geodesy" },
+            { id: 237, english: "inertial reference system", chinese: "惯性参考系", category: "Geodesy" },
+            { id: 238, english: "vernal equinox", chinese: "春分点", category: "Geodesy" },
+            { id: 239, english: "Greenwich observatory", chinese: "格林威治天文台", category: "Geodesy" },
+            { id: 240, english: "sidereal time", chinese: "恒星时", category: "Geodesy" },
+            { id: 241, english: "meridian plane", chinese: "子午面", category: "Geodesy" },
+            { id: 242, english: "plano-polar", chinese: "行星极地", category: "Geodesy" },
+            { id: 243, english: "artifice", chinese: "工艺，诡计", category: "Geodesy" },
+            { id: 244, english: "Universal Transverse Mercator", chinese: "通用横轴墨卡托投影", category: "Geodesy" },
+            { id: 245, english: "tricky", chinese: "棘手的，难对付的", category: "Geodesy" },
+            { id: 246, english: "orthometric height", chinese: "正高", category: "Geodesy" },
+            { id: 247, english: "normal height", chinese: "正常高", category: "Geodesy" },
+            { id: 248, english: "potential energy", chinese: "势能", category: "Geodesy" },
+            { id: 249, english: "point positioning", chinese: "单点定位", category: "Geodesy" },
+            { id: 250, english: "hierarchy", chinese: "等级，层级", category: "Geodesy" },
+            { id: 251, english: "traverse", chinese: "导线测量", category: "Geodesy" },
+            { id: 252, english: "static GPS", chinese: "静态GPS", category: "Geodesy" },
+            { id: 253, english: "real time kinematic GPS", chinese: "实时动态全球定位系统 (RTK-GPS)", category: "Geodesy" },
+            { id: 254, english: "formulate", chinese: "规划，公式化", category: "Geodesy" },
+            { id: 255, english: "closed solution", chinese: "闭合解", category: "Geodesy" },
+            { id: 256, english: "series expansion", chinese: "级数展开", category: "Geodesy" },
+            { id: 257, english: "converge", chinese: "收敛", category: "Geodesy" },
+            { id: 258, english: "zenith", chinese: "天顶", category: "Geodesy" },
+            { id: 259, english: "celestial sphere", chinese: "天球", category: "Geodesy" },
+            { id: 260, english: "nadir", chinese: "天底", category: "Geodesy" },
+            { id: 261, english: "celestial horizon", chinese: "天球地平圈", category: "Geodesy" },
+            { id: 262, english: "clockwise", chinese: "顺时针方向", category: "Geodesy" },
+            { id: 263, english: "celestial pole", chinese: "天极", category: "Geodesy" },
+            { id: 264, english: "celestial equator", chinese: "天球赤道", category: "Geodesy" },
+            { id: 265, english: "level", chinese: "水准仪", category: "Geodesy" },
+            { id: 266, english: "heighting", chinese: "测高", category: "Geodesy" },
+            { id: 267, english: "detail survey", chinese: "碎部测量", category: "Geodesy" },
+            { id: 268, english: "satellite laser", chinese: "卫星激光测距", category: "Geodesy" },
+            { id: 269, english: "gravimeter", chinese: "重力仪", category: "Geodesy" },
+            { id: 270, english: "absolute gravimeter", chinese: "绝对重力仪", category: "Geodesy" },
+            { id: 271, english: "relative gravimeter", chinese: "相对重力仪", category: "Geodesy" },
+            { id: 272, english: "acceleration", chinese: "加速度", category: "Geodesy" },
+            { id: 273, english: "free fall", chinese: "自由落体", category: "Geodesy" },
+
+            // 11. Photogrammetry
+            { id: 274, english: "photogrammetry", chinese: "摄影测量学", category: "Photogrammetry" },
+            { id: 275, english: "photogrammetrist", chinese: "摄影测量师", category: "Photogrammetry" },
+            { id: 276, english: "literature", chinese: "文献", category: "Photogrammetry" },
+            { id: 277, english: "imagery", chinese: "影像", category: "Photogrammetry" },
+            { id: 278, english: "orthophoto", chinese: "正射影像", category: "Photogrammetry" },
+            { id: 279, english: "aerial photograph", chinese: "航空相片", category: "Photogrammetry" },
+            { id: 280, english: "lens", chinese: "镜头", category: "Photogrammetry" },
+            { id: 281, english: "close range photogrammetry", chinese: "近景摄影测量", category: "Photogrammetry" },
+            { id: 282, english: "terrestrial photogrammetry", chinese: "地面摄影测量", category: "Photogrammetry" },
+            { id: 283, english: "digital terrain model", chinese: "数字地形模型 (DTM)", category: "Photogrammetry" },
+            { id: 284, english: "civil engineer", chinese: "土木工程师", category: "Photogrammetry" },
+            { id: 285, english: "initiator", chinese: "启动者，发起者", category: "Photogrammetry" },
+            { id: 286, english: "stereoscope", chinese: "立体镜", category: "Photogrammetry" },
+            { id: 287, english: "manual of photogrammetry", chinese: "摄影测量手册", category: "Photogrammetry" },
+            { id: 288, english: "vectorize", chinese: "矢量化", category: "Photogrammetry" },
+            { id: 289, english: "stereocomparator", chinese: "立体比较仪", category: "Photogrammetry" },
+            { id: 290, english: "optical rectification", chinese: "光学校正", category: "Photogrammetry" },
+            { id: 291, english: "metric camera", chinese: "量测相机", category: "Photogrammetry" },
+            { id: 292, english: "aerotriangulation", chinese: "空中三角测量", category: "Photogrammetry" },
+            { id: 293, english: "bundle adjustment", chinese: "光束法平差", category: "Photogrammetry" },
+            { id: 294, english: "fiducial", chinese: "基准，框标", category: "Photogrammetry" },
+            { id: 295, english: "amateur camera", chinese: "非量测相机", category: "Photogrammetry" },
+            { id: 296, english: "orientation element", chinese: "定向元素", category: "Photogrammetry" },
+
+            // 12. GIS
+            { id: 297, english: "geographic information system", chinese: "地理信息系统 (GIS)", category: "GIS" },
+            { id: 298, english: "spur", chinese: "推动，刺激", category: "GIS" },
+            { id: 299, english: "consolidate", chinese: "合并，加固", category: "GIS" },
+            { id: 300, english: "tabular data", chinese: "表格数据", category: "GIS" },
+            { id: 301, english: "data representation", chinese: "数据表示", category: "GIS" },
+            { id: 302, english: "data capture", chinese: "数据获取", category: "GIS" },
+            { id: 303, english: "data manipulation", chinese: "数据处理", category: "GIS" },
+            { id: 304, english: "spatial analysis", chinese: "空间分析", category: "GIS" },
+            { id: 305, english: "data modeling", chinese: "数据建模", category: "GIS" },
+            { id: 306, english: "topological modeling", chinese: "拓扑建模", category: "GIS" },
+            { id: 307, english: "adjacency", chinese: "邻接性", category: "GIS" },
+            { id: 308, english: "containment", chinese: "包含性", category: "GIS" },
+            { id: 309, english: "proximity", chinese: "邻近度", category: "GIS" },
+            { id: 310, english: "cartographic modeling", chinese: "地图制图建模", category: "GIS" },
+            { id: 311, english: "vector overlay", chinese: "矢量叠加", category: "GIS" },
+            { id: 312, english: "spatial statistics", chinese: "空间统计学", category: "GIS" },
+            { id: 313, english: "graphic display technique", chinese: "图像显示技术", category: "GIS" },
+            { id: 314, english: "cadastral system", chinese: "地籍系统", category: "GIS" },
+            { id: 315, english: "normalized vegetation index", chinese: "归一化植被指数 (NDVI)", category: "GIS" },
+            { id: 316, english: "cell", chinese: "单元，像元", category: "GIS" }
+        ];
+
+        // 规范的大类分类
+        const CATEGORIES = [
+            "Why Go to College",
+            "Digital Earth",
+            "Geomatics",
+            "Surveying",
+            "Figure of the Earth",
+            "Mean Sea Level",
+            "Topography",
+            "Theodolite",
+            "Cartography",
+            "Geodesy",
+            "Photogrammetry",
+            "GIS"
+        ];
+
+        // 12 篇重点研读文章段落精校库
+        const ARTICLE_DATA = [
+            {
+                title: "1. Why Go to College? (为什么上大学？)",
+                category: "Why Go to College",
+                paragraphs: [
+                    {
+                        en: "“Disinterested intellectual curiosity is the lifeblood of real civilization.” —George Macaulay Trevdyan - English Social History (1942). The basic reason that people should go to college is to get educated. This may seem like a trivial statement, but the fact remains that discipline of mind or character through study is education. Many writers in recent articles on the subject of surveying education have jumped into a detailed technical surveying curriculum outline and ignored the basic reason why someone goes to college.",
+                        zh: "“无私的求知欲是真正文明的命脉。”——乔治·麦考利·特里维廉 - 《英国社会史》(1942)。人们应该上大学的基本原因是接受教育。这似乎是一个微不足道的陈述，但事实依然是，通过学习来约束心智或品格就是教育。最近许多关于测量教育主题的文章作者都直接跳转到了详细的技术测量课程大纲中，而忽略了某人上大学的基本原因。"
+                    },
+                    {
+                        en: "In the last hundred years the percentage of citizens who have obtained their college degree has risen and with it the general educational level in this country. Where once a grammar school certificate was the norm, it was replaced by the high school diploma and soon by the college degree. History shows Abraham Lincoln was able to teach himself at home and rose to be president of the United States. College trained persons were few in number during those days and practice was more important than formal education.",
+                        zh: "在过去的一百年里，获得大学学位的公民比例有所上升，随之而来的是这个国家整体教育水平的提高。曾经小学毕业证书是常态，后来被高中毕业证书取代，很快又被大学学位取代。历史表明，亚伯拉罕·林肯能够在家自学并升任美国总统。在那个时代，接受过大学培训的人数很少，实践比正规教育更为重要。"
+                    },
+                    {
+                        en: "In the formal surveying area, it is important to have core mathematical skills such as algebra, geometry, trigonometry, and calculus. Yes, calculus should be included because there are places where it eases the computational load such as in the algebraic technique for calculations of elevations on vertical curves where the derivation can employ a differentiation of a basic analytical geometry equation to solve the problem.",
+                        zh: "在正规的测量领域，拥有核心数学技能（如代数、几何、三角学和微积分）非常重要。是的，应该包括微积分，因为在某些地方它可以减轻计算负担，例如在计算竖曲线高程的代数方法中，可以通过对基本解析几何公式进行微分来解决问题。"
+                    },
+                    {
+                        en: "Other courses such as photogrammetry, Plane Surveying, including fieldwork, GPS data acquisition, and Least Squares Adjustments are essential. The humanities help us to relate to people by speaking and writing and enable us to understand how persons interact with other social beings. The surveyor needs these communication skills as he meets the general public.",
+                        zh: "其他课程如摄影测量学、普通测量学（包括野外作业、GPS数据采集）以及最小二乘法平差也是必不可少的。人文学科帮助我们通过口头和书面语言与人建立联系，并使我们能够理解人们如何与其他社会成员进行互动。测量员在面对社会公众时非常需要这些沟通技巧。"
+                    }
+                ]
+            },
+            {
+                title: "2. What is Digital Earth? (什么是数字地球？)",
+                category: "Digital Earth",
+                paragraphs: [
+                    {
+                        en: "Society has gathered an enormous amount of digital information about the Earth and its inhabitants. This digital information consists of everything from satellite photographs that detail cities and farm fields to databases containing information on transportation, commerce, population, crime, food production, history, and much more. The scale ranges from global to local--from humanity to the individual. This information that is stored around the world is not easily accessible or easily utilized in conjunction with other types of data.",
+                        zh: "人类社会已经收集了关于地球及其居民的巨量数字信息。这些数字信息包括从描绘城市和农田细节的卫星照片，到包含交通、商业、人口、犯罪、粮食生产、历史等信息的数据库。其规模从全球到局部——从整个人类到个体。这些存储在世界各地的信息不易获取，也不易与其他类型的数据结合使用。"
+                    },
+                    {
+                        en: "Recognizing this challenge the National Digital Earth Initiative was created to enable and facilitate the evolution of Digital Earth, a digital representation of the planet that will allow people to explore and interact with vast amounts of natural and cultural information. Imagine a school child able to browse the planet, requesting information on land cover, distribution of planet and animal species, real-time weather, roads, political boundaries, and population.",
+                        zh: "认识到这一挑战后，国家数字地球倡议应运而生，以实现并促进数字地球的发展。数字地球是该星球的数字化表示，能让人们探索大量自然和文化信息并与之互动。想象一下，一个学童能够浏览这个星球，获取有关土地覆盖、动植物物种分布、实时天气、道路、政治边界和人口的信息。"
+                    },
+                    {
+                        en: "Digital Earth is several things: a way to obtain information about the Earth; a framework in which to publish information; a new market for data, software and services; a set of standards; a local, national, and international collaboration; a near-term 'alpha version'; technology challenges for the long-term vision. A primary goal of Digital Earth is to unlock the world's knowledge by simplifying access to georeferenced information, which is information that relates to a particular spot or area of the earth.",
+                        zh: "数字地球具有多重身份：一种获取地球信息的方式；一个发布信息的框架；数据、软件和服务的新市场；一套标准；一个地方、国家和国际的合作项目；一个近期的“测试版本”；以及长期愿景下的技术挑战。数字地球的主要目标是通过简化地理参考信息的获取来释放世界的知识，即与地球特定地点或区域相关的信息。"
+                    }
+                ]
+            },
+            {
+                title: "3. Geomatics (测绘学/空间信息学)",
+                category: "Geomatics",
+                paragraphs: [
+                    {
+                        en: "“Geomatics” is the discipline of gathering, storing, processing, and delivering of geographic information. This broad term applies both to science and technology, and integrates more specific disciplines and technologies such as geodesy, surveying, mapping, positioning, navigation, cartography, remote sensing, photogrammetry, geographic information systems, and global positioning system.",
+                        zh: "“测绘学”是收集、存储、处理和传递地理信息的学科。这个广泛的术语同时应用于科学和技术，并整合了大地测量、测量、制图、定位、导航、地图制图、遥感、摄影测量、地理信息系统和全球定位系统等更具体的学科和技术。"
+                    },
+                    {
+                        en: "The term 'geomatics' is fairly young, apparently being invented by B. Dubuisson in 1969. It is commonly defined to include the tools and techniques used in land surveying, remote sensing, Geographic Information Systems (GIS), Global Positioning System (GPS), and related forms of earth mapping. Originally coined in Canada, the term ”geomatics” has been adopted by the International Standards Organization, the Royal Institution of Chartered Surveyors, and many other international authorities.",
+                        zh: "“geomatics”一词相当年轻，显然是由B. Dubuisson于1969年发明的。它通常被定义为包括土地测量、遥感、地理信息系统 (GIS)、全球定位系统 (GPS) 及相关形式的地球制图中所使用的工具和技术。该词最初在加拿大创造，现已被国际标准化组织、皇家特许测绘师学会和许多其他国际权威机构所采用。"
+                    },
+                    {
+                        en: "Geomatics Engineering is a modern discipline, which integrates acquisition, modelling, analysis, and management of spatially referenced data, i.e. data identified according to their locations. Based on the scientific framework of geodesy, it uses terrestrial, marine, airborne, and satellite-based sensors to acquire spatial and other data. It includes the process of transforming spatially referenced data from different sources into common information systems with well-defined accuracy characteristics.",
+                        zh: "测绘工程是一门现代学科，它整合了空间参考数据（即根据其位置识别的数据）的采集、建模、分析和管理。基于大地测量学的科学框架，它利用陆地、海洋、航空和基于卫星的传感器来获取空间及其他数据。它包括将来自不同来源的空间参考数据转换为具有明确精度特征的公共信息系统的过程。"
+                    }
+                ]
+            },
+            {
+                title: "4. Surveying (测量学)",
+                category: "Surveying",
+                paragraphs: [
+                    {
+                        en: "“Surveying” is the art and science of accurately determining the position of points and the distances between them. These points are usually, but not exclusively, associated with positions on the surface of the Earth, and are often used to establish land boundaries for ownership or governmental purposes. In order to accomplish their objective, surveyors use elements of engineering, physics, mathematics, law, and history.",
+                        zh: "“测量学”是精确测定点的位置及它们之间距离的艺术与科学。这些点通常（但不仅限于）与地球表面的位置相关，并常用于确定土地边界，以用于所有权确认或政府行政管理目的。为了达到他们的目的，测量员需要使用工程、物理、数学、法律和历史等要素。"
+                    },
+                    {
+                        en: "Surveying has been an essential element in the development of the human environment since the beginning of recorded history and it is a requirement in the planning and execution of nearly every form of construction. Its most familiar modern uses are in the fields of transportation, building and construction, communications, mapping, and the definition of legal boundaries for land ownership.",
+                        zh: "自记载历史开始以来，测量学一直是人类环境发展中的重要元素，并且是几乎所有形式的建设规划与实施中的必然要求。它最广为人知的现代用途包括交通、工程建筑与施工、通信、制图以及土地所有权法律边界的界定。"
+                    },
+                    {
+                        en: "Surveying techniques have existed throughout much of recorded history. One example of early surveyors were the Egyptians, who, every year after the Nile River overflowed its banks and washed out farm boundaries, would re-establish the boundaries by application of simple geometry. The nearly perfect squareness and north-south orientation of the Great Pyramid of Giza, built c. 2700 BC, affirm the ancient Egyptians' command of surveying.",
+                        zh: "测量技术存在于大部分有记载的历史中。早期测量员的一个例子是埃及人，每年在尼罗河水漫过河岸冲毁农田边界后，他们都会通过应用简单的几何学来重新确定边界。建于公元前2700年左右的吉萨大金字塔近乎完美的直角和南北朝向，证实了古埃及人对测量学的掌握。"
+                    }
+                ]
+            },
+            {
+                title: "5. Figure of the Earth (地球形状)",
+                category: "Figure of the Earth",
+                paragraphs: [
+                    {
+                        en: "The expression ”figure of the Earth” has various meanings in geodesy according to the way it is used and the precision with which the Earth's size and shape is to be defined. The actual topographic surface is most apparent with its variety of land forms and water areas. This is, in fact, the surface on which actual Earth measurements are made. It is not suitable, however, for exact mathematical computations because the formulas which would be required to take the irregularities into account would necessitate a prohibitive amount of computations.",
+                        zh: "“地球形状”这一表述在大地测量学中根据其使用方式以及定义地球大小和形状的精度而有不同的含义。实际的地形表面因各种陆地形态和水域而最为明显。事实上，这就是进行实际地球测量的表面。然而，它不适用于精确的数学计算，因为考虑这些不规则性所需的公式将导致极高难度的计算量。"
+                    },
+                    {
+                        en: "Since the Earth is in fact flattened slightly at the poles and bulges somewhat at the equator, the geometrical figure used in geodesy to most nearly approximate the shape of the Earth is an ellipsoid of revolution. The ellipsoid of revolution is the figure which would be obtained by rotating an ellipse about its shorter axis. An ellipsoid of revolution describing the figure of the Earth is called a reference ellipsoid.",
+                        zh: "由于地球在两极实际上稍扁而在赤道凸起，大地测量学中用于最接近逼近地球形状的几何图形是旋转椭球体。旋转椭球体是通过围绕椭圆的短轴旋转椭圆而得到的图形。描述地球形状的旋转椭球体称为参考椭球体。"
+                    },
+                    {
+                        en: "The geoid coincides with that surface to which the oceans would conform over the entire Earth if free to adjust to the combined effect of the Earth's mass attraction (gravitation) and the centrifugal force of the Earth's rotation, i.e., gravity. As a result of the uneven distribution of the Earth's mass, the geoidal surface is irregular. The separations between the reference ellipsoid and geoid, referred to as geoid undulations. The angle between the plumb line which is perpendicular to the geoid and the ellipsoidal normal is defined as the deflection of the vertical.",
+                        zh: "大地水准面是指在重力（即地球质量万有引力和地球自转离心力的共同作用）作用下，如果全球海洋可以自由调整，将与之契合的等势面。由于地球质量分布不均匀，大地水准面是不规则的。参考椭球体与大地水准面之间的分离称为大地水准面起伏。垂直于大地水准面的铅垂线与椭球法线之间的夹角定义为垂线偏差。"
+                    }
+                ]
+            },
+            {
+                title: "6. Mean Sea Level (平均海水面)",
+                category: "Mean Sea Level",
+                paragraphs: [
+                    {
+                        en: "Mean ”sea level” (MSL) is the average height of the sea, with reference to a suitable reference surface. Defining the reference level, however, involves complex measurement, and accurately determining MSL can prove difficult. To an operator of a tide gauge, MSL means the ”still water level”—the level of the sea with motions such as wind waves averaged out—averaged over a period of time such that changes in sea level, e.g., due to the tides, also get averaged out.",
+                        zh: "平均“海水面”（MSL）是指以合适的参考面为基准的海洋平均高度。然而，定义参考面涉及复杂的测量，准确确定平均海平面可能非常困难。对于自动验潮仪的操作员来说，平均海平面意味着“静水面高度”——即排除了风浪等运动后的海平面高度，并在一段时间内进行平均，从而将潮汐引起的海平面变化也平均掉。"
+                    },
+                    {
+                        en: "In a state of rest or absence of external forces, the mean sea level would coincide with this geoid surface, being an equipotential surface of the Earth's gravity field. In reality, due to currents, air pressure variations, temperature and salinity variations, etc., this does not occur, not even as a long term average. The location-dependent, but persistent in time, separation between mean sea level and the geoid is referred to as stationary sea surface topography.",
+                        zh: "在静止状态或无外力作用下，平均海平面将与大地水准面重合，成为地球重力场的等势面。在现实中，由于洋流、气压变化、温度和盐度变化等原因，即使是长期平均也不会发生这种情况。随位置变化但在时间上持久存在的平均海水面与大地水准面之差，被称为静态海面地形。"
+                    }
+                ]
+            },
+            {
+                title: "7. Topography (地形学)",
+                category: "Topography",
+                paragraphs: [
+                    {
+                        en: "“Topography”, a term in geography, has come to refer to the ”lay of the land”, or the physiogeographic characteristics of land in terms of elevation, slope, and orientation. ”Terrain” is a similar term, used more to describe the land itself than the study of it. ”Relief” is often used to refer to the third dimension of a map whether in actuality (as in a ”raised relief” map) or the territory it describes. The United States Geological Survey (USGS) topographical survey maps included contour representation of relief.",
+                        zh: "“地形学”是地理学中的一个术语，已指代“地形起伏”或土地在海拔、坡度和坡向方面的自然地理特征。“地面”是一个类似的词，更多用于描述土地本身而不是对其的研究。“地势起伏”常用于指地图的第三维度，无论是在现实中（如“浮雕地形图”）还是其所描述的地域。美国地质调查局（USGS）地形图通过等高线表达显示地势起伏。"
+                    },
+                    {
+                        en: "Understanding topography is critical. In terms of environmental quality, agriculture, and hydrology, understanding the topography of an area enables the understanding of watershed boundaries, drainage characteristics, water movement, and impacts on water quality. In agriculture, contour plowing along topographic lines is an established sustainable practice of plowing along sloping land.",
+                        zh: "理解地形至关重要。就环境质量、农业和水文学而言，了解一个区域的地形能够让人理解分水岭边界、排水特征、水体运动以及对水质的影响。在农业中，沿等高地形线进行等高耕作是一项在坡地上耕作的可持续成熟方法。"
+                    }
+                ]
+            },
+            {
+                title: "8. Theodolite (经纬仪)",
+                category: "Theodolite",
+                paragraphs: [
+                    {
+                        en: "A ”theodolite” is an instrument for measuring both horizontal and vertical angles, as used in triangulation networks. It consists of a telescope mounted movably within two perpendicular axes, the horizontal or trunnion axis, and the vertical axis. These must be mutually perpendicular. The optical axis of the telescope, called sight axis and defined by the optical center of the objective and the center of the cross-hairs in its focal plane, must similarly be perpendicular to the horizontal axis. If not, we call the deviation collimation error.",
+                        zh: "“经纬仪”是一种用于在三角网测量中测量水平角和竖直角的仪器。它由一个安装在两个相互垂直的轴（水平支轴和竖轴）上的望远镜组成。这些轴线必须相互垂直。望远镜的光学轴线称为视准轴，由物镜的光学中心和焦平面上的十字丝中心定义，同样也必须垂直于水平轴。如果不是，我们称该偏差为视准轴误差（collimation error）。"
+                    },
+                    {
+                        en: "Both axes of a theodolite are equipped with graduated circles that can be read out. A theodolite is mounted on a tripod by means of a forced centering plate or tribrach, containing three thumbscrews for rapid levelling. Centering is done using a plumb, levelling is done using a spirit level. Today's intelligent theodolites with integrated electro-optical distance measuring devices are called total stations.",
+                        zh: "经纬仪的两个轴都配有可读数的刻度盘。经纬仪通过带有三个脚螺旋的强制居中板或三脚基座（tribrach）安装在三脚架上进行快速整平。对中是使用铅垂线或光学对中器完成的，整平是使用水准器（spirit level）完成的。如今带有集成光电测距仪的智能经纬仪被称为全站仪。"
+                    }
+                ]
+            },
+            {
+                title: "9. Cartography (地图制图学)",
+                category: "Cartography",
+                paragraphs: [
+                    {
+                        en: "“Cartography” or ”mapmaking” is the study and practice of making maps or globes. Maps have traditionally been made using pen and paper, but the advent and spread of computers has revolutionized cartography. Most commercial quality maps are now made with map making software that falls into one of three main types: CAD, GIS, and specialized map illustration software.",
+                        zh: "“地图制图学”或“制图”是制作地图或地球仪的研究与实践。传统上地图是使用钢笔和纸张制作的，但计算机的出现和普及彻底改变了地图制图学。现在大多数商业级地图都是使用制图软件制作的，主要包括三类：CAD、GIS和专门的地图插画软件。"
+                    },
+                    {
+                        en: "The oldest known maps emphasized topological relationships such as connectedness, adjacency, and containment. A major development in mapmaking occurred with the advent of geometry which was first used in Babylonia. The ancient Greeks added a great deal to the art and science of cartography. Eratosthenes estimated the circumference of the earth and Greeks developed map projections to represent the curved surface on a plane.",
+                        zh: "已知最古老的地图强调拓扑关系，如连通性、邻接性和包含性。制图学的一个重大发展随着几何学的出现而发生，几何学最早在巴比伦使用。古希腊人对地图制图学的艺术和科学做出了巨大贡献。埃拉托斯特尼估算了地球周长，希腊人也开发了地图投影以在平面上表示弯曲的地球表面。"
+                    }
+                ]
+            },
+            {
+                title: "10. Geodesy (大地测量学)",
+                category: "Geodesy",
+                paragraphs: [
+                    {
+                        en: "“Geodesy”, also called ”geodetics”, is the scientific discipline that deals with the measurement and representation of the earth, its gravitational field and geodynamic phenomena (polar motion, earth tides, and crustal motion) in three-dimensional time varying space. Geodesy is primarily concerned with positioning and the gravity field and geometrical aspects of their temporal variations.",
+                        zh: "“大地测量学”，也称为“测地学”，是一门研究在三维时变空间中对地球、其重力场及地球动力学现象（极移、固体潮和地壳运动）进行测量和表示的科学学科。大地测量学主要关注定位、重力场及其随时间变化的几何特征。"
+                    },
+                    {
+                        en: "Friedrich Robert Helmert defined geodesy as ”the science of the measurement and mapping of the earth's surface”. The shape of the earth is to a large extent the result of its gravity field. This applies to the solid surface, liquid surface, and the atmosphere. For this reason, the study of the Earth's gravity field is seen as a part of geodesy, called physical geodesy.",
+                        zh: "弗里德里希·罗伯特·赫尔默特将大地测量学定义为“测量和描绘地球表面的科学”。地球的形状在很大程度上是其重力场作用的结果。这适用于固体表面、液体表面以及大气层。因此，对地球重力场的研究被视为大地测量学的一部分，称为物理大地测量学。"
+                    }
+                ]
+            },
+            {
+                title: "11. Introduction to Photogrammetry (摄影测量学)",
+                category: "Photogrammetry",
+                paragraphs: [
+                    {
+                        en: "Photogrammetry is the technique of measuring objects (2D or 3D) from photogrammes (commonly photographs or digital imagery stored on disk taken by video or CCD cameras). The applications of photogrammetry are widely spread. Principally, it is utilized for object interpretation and object measurement. Aerial photogrammetry is far range, mainly used to produce DTM (digital terrain model) or topographic maps.",
+                        zh: "摄影测量学是指通过像片（通常是照片或通过摄像机/CCD相机拍摄并存储在磁盘上的数字影像）测量物体（2D或3D）的技术。摄影测量学的应用非常广泛。原则上，它被用于目标判释（what）和目标测量（where）。航空摄影测量属于远景测量，主要用于制作数字地形模型（DTM）或地形图。"
+                    },
+                    {
+                        en: "Among the users of close-range (terrestrial) photogrammetry are architects and civil engineers (to supervise buildings, document their current state, deformations or damages), archaeologists, surgeons (plastic surgery) or police departments (documentation of traffic accidents and crime scenes). Analytical methods such as bundle adjustment are used to resolve coordinates with high accuracy.",
+                        zh: "近景（地面）摄影测量用户包括建筑师和土木工程师（用以监管建筑物、记录其当前状态、变形或损坏）、考古学家、外科医生（整形外科）或警察部门（记录交通事故和犯罪现场）。光束法平差等解析方法常用于高精度解算坐标。"
+                    }
+                ]
+            },
+            {
+                title: "12. Geographic Information System (地理信息系统)",
+                category: "GIS",
+                paragraphs: [
+                    {
+                        en: "A ”geographic information system” (GIS) is a system for managing data that has a spatial specialized form of an information system. In the strictest sense, it is a computer system capable of assembling, storing, manipulating, and displaying geographically-referenced information, i.e. data identified according to their locations, in a database. The year 1967 saw the development of the world's first true operational GIS (Canadian GIS, CGIS) developed by Roger Tomlinson, the ”father of GIS”.",
+                        zh: "“地理信息系统”（GIS）是一个用于管理空间特殊形式数据的信息系统。从最严格的意义上讲，它是一个能够在数据库中装配、存储、处理和展示地理参考信息（即根据其位置识别的数据）的计算机系统。1967年，由“GIS之父”罗杰·汤姆林森开发的世界上第一个真正运行的GIS（加拿大地理信息系统，CGIS）诞生了。"
+                    },
+                    {
+                        en: "There are two broad methods used to store data in a GIS for data representation: Raster and Vector. Raster data consists of rows and columns of cells that store a single value, representing categorical class or continuous values. Vector data uses geometries such as points, lines, or areas (polygons) to represent discrete objects and topological modeling.",
+                        zh: "在GIS中，用于数据表示和存储数据的方法主要有两种：栅格（Raster）和矢量（Vector）。栅格数据由存储单一数值的像元（cell）行和列组成，代表分类级别或连续值。矢量数据使用诸如点、线或面（多边形）等几何图形来表示离散对象以及进行拓扑建模。"
+                    }
+                ]
+            }
+        ];
+
+        // ================= 核心状态变量 =================
+        let currentTab = 'vocab';
+        let currentCategory = 'Why Go to College';
+        let currentFilter = 'all'; // all, unlearned, learned
+        let learnedWords = new Set(); // 已掌握单词的ID集合
+
+        // Quiz 专用状态
+        let quizMode = 'mcq_en'; 
+        let quizCurrentIndex = 0;
+        let quizCorrectCount = 0;
+        let quizQuestions = [];
+
+        // Reader 专用状态
+        let currentArticleIndex = 0;
+
+        // ================= 数据初始化与本地存储 =================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalStorage();
+            renderCategoryList();
+            renderCards();
+            renderArticleList();
+            renderArticleContent();
+            updateStats();
+            lucide.createIcons();
+        });
+
+        function loadLocalStorage() {
+            const saved = localStorage.getItem('geomatics_learned_words_v2');
+            if (saved) {
+                try {
+                    const arr = JSON.parse(saved);
+                    learnedWords = new Set(arr);
+                } catch(e) {
+                    learnedWords = new Set();
+                }
+            }
+        }
+
+        function saveLocalStorage() {
+            const arr = Array.from(learnedWords);
+            localStorage.setItem('geomatics_learned_words_v2', JSON.stringify(arr));
+            updateStats();
+        }
+
+        function resetProgress() {
+            if (confirm("确定要重置所有的学习进度吗？您的掌握记录将被全部清空！")) {
+                learnedWords.clear();
+                saveLocalStorage();
+                renderCategoryList();
+                renderCards();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const total = VOCAB_DATA.length;
+            const known = learnedWords.size;
+            const percent = total > 0 ? Math.round((known / total) * 100) : 0;
+
+            document.getElementById('stat-total-words').innerText = total;
+            document.getElementById('stat-known-words').innerText = known;
+            document.getElementById('stat-progress-percent').innerText = `${percent}%`;
+            document.getElementById('stat-progress-bar').style.width = `${percent}%`;
+        }
+
+        // ================= Tab 切换 =================
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-[#90a955]', 'text-white');
+                btn.classList.add('text-slate-100');
+            });
+            
+            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
+            activeBtn.classList.remove('text-slate-100');
+            activeBtn.classList.add('bg-[#90a955]', 'text-white');
+
+            if (tabId === 'quiz') {
+                updateQuizSourceLabel();
+            }
+            lucide.createIcons();
+        }
+
+        // ================= 词汇卡片背词模块 =================
+        function renderCategoryList() {
+            const container = document.getElementById('category-list');
+            container.innerHTML = '';
+            
+            CATEGORIES.forEach(cat => {
+                const count = VOCAB_DATA.filter(w => w.category === cat).length;
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex justify-between items-center ${
+                    currentCategory === cat 
+                    ? 'bg-[#4f772d] text-white shadow-md' 
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`;
+                btn.onclick = () => selectCategory(cat);
+                
+                const categoryWords = VOCAB_DATA.filter(w => w.category === cat);
+                const knownInCat = categoryWords.filter(w => learnedWords.has(w.id)).length;
+                
+                btn.innerHTML = `
+                    <span>${cat}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full ${currentCategory === cat ? 'bg-[#90a955] text-white' : 'bg-slate-100 text-slate-500'} font-black">
+                        ${knownInCat}/${count}
+                    </span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            renderCategoryList();
+            renderCards();
+            updateQuizSourceLabel();
+        }
+
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+                btn.classList.add('text-slate-500');
+            });
+            const activeBtn = document.getElementById(`filter-${filterType}`);
+            activeBtn.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+            activeBtn.classList.remove('text-slate-500');
+            renderCards();
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            let words = VOCAB_DATA.filter(w => w.category === currentCategory);
+            
+            if (currentFilter === 'learned') {
+                words = words.filter(w => learnedWords.has(w.id));
+            } else if (currentFilter === 'unlearned') {
+                words = words.filter(w => !learnedWords.has(w.id));
+            }
+
+            document.getElementById('category-word-count').innerText = words.length;
+
+            if (words.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-400">
+                        <i data-lucide="info" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                        <p class="font-bold text-sm">在此过滤状态下暂无词汇</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            words.forEach(word => {
+                const isKnown = learnedWords.has(word.id);
+                const card = document.createElement('div');
+                card.className = `flashcard relative h-48 cursor-pointer group`;
+                card.id = `card-${word.id}`;
+                
+                card.innerHTML = `
+                    <div class="flashcard-inner relative w-full h-full rounded-2xl shadow-sm border border-slate-200 bg-white transition-all duration-300 transform group-hover:shadow-md">
+                        <!-- 正面 -->
+                        <div onclick="toggleCard(${word.id})" class="flashcard-front absolute inset-0 p-5 flex flex-col justify-between">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded font-black tracking-wider uppercase">ENG</span>
+                                <span class="text-xs text-[#90a955] flex items-center gap-1 font-bold"><i data-lucide="help-circle" class="w-3 h-3"></i>点击翻面</span>
+                            </div>
+                            <div class="text-center py-2">
+                                <h3 class="text-xl font-bold tracking-wide text-slate-800 break-words font-mono">${word.english}</h3>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-slate-50 pt-2" onclick="event.stopPropagation();">
+                                <button onclick="toggleWordMastery(${word.id})" class="text-xs font-bold flex items-center gap-1.5 transition-all ${
+                                    isKnown ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'
+                                }">
+                                    <i data-lucide="${isKnown ? 'check-square' : 'square'}" class="w-4 h-4"></i>
+                                    <span>${isKnown ? '已掌握' : '标为掌握'}</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 背面 -->
+                        <div onclick="toggleCard(${word.id})" class="flashcard-back absolute inset-0 p-5 bg-gradient-to-br from-[#f4f7f6] to-white rounded-2xl flex flex-col justify-between border-2 border-[#90a955]/30">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] bg-[#90a955]/10 text-[#31572c] px-2 py-0.5 rounded font-black tracking-wider">ZH-CN</span>
+                                <span class="text-[11px] text-[#4f772d] font-bold font-mono">${word.english}</span>
+                            </div>
+                            <div class="text-center py-2">
+                                <p class="text-base font-bold text-slate-700 leading-snug">${word.chinese}</p>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-slate-100 pt-2" onclick="event.stopPropagation();">
+                                <button onclick="toggleWordMastery(${word.id})" class="text-xs font-bold flex items-center gap-1.5 transition-all ${
+                                    isKnown ? 'text-emerald-600' : 'text-slate-400 hover:text-emerald-600'
+                                }">
+                                    <i data-lucide="${isKnown ? 'check-square' : 'square'}" class="w-4 h-4"></i>
+                                    <span>已掌握</span>
+                                </button>
+                                <span class="text-[10px] text-slate-400 font-semibold">${word.category}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function toggleCard(id) {
+            const card = document.getElementById(`card-${id}`);
+            card.classList.toggle('flipped');
+        }
+
+        function toggleWordMastery(id) {
+            if (learnedWords.has(id)) {
+                learnedWords.delete(id);
+            } else {
+                learnedWords.add(id);
+            }
+            saveLocalStorage();
+            renderCategoryList();
+            renderCards();
+        }
+
+        // ================= 测试评估模式 =================
+        function updateQuizSourceLabel() {
+            document.getElementById('quiz-source-label').innerText = `当前选定大类: 【${currentCategory}】下的全部 ${VOCAB_DATA.filter(w => w.category === currentCategory).length} 个词汇`;
+        }
+
+        function selectQuizMode(mode) {
+            quizMode = mode;
+            document.querySelectorAll('.quiz-mode-btn').forEach(btn => {
+                btn.className = "quiz-mode-btn p-4 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-center transition-all flex flex-col items-center gap-2 hover:border-emerald-300";
+            });
+            
+            const activeBtn = document.getElementById(`btn-mode-${mode}`);
+            activeBtn.className = "quiz-mode-btn p-4 rounded-xl border-2 border-[#4f772d] bg-[#f4f7f6] text-[#31572c] font-bold text-center transition-all flex flex-col items-center gap-2";
+        }
+
+        function startQuiz() {
+            const pool = VOCAB_DATA.filter(w => w.category === currentCategory);
+            if (pool.length < 4) {
+                alert(`当前大类【${currentCategory}】词汇量过少（至少需要4个单词才能生成选项），请选择其它更丰富的分类！`);
+                return;
+            }
+
+            const shuffled = [...pool].sort(() => 0.5 - Math.random());
+            quizQuestions = shuffled.slice(0, Math.min(10, shuffled.length));
+
+            quizCurrentIndex = 0;
+            quizCorrectCount = 0;
+
+            document.getElementById('quiz-box').classList.remove('hidden');
+            document.getElementById('quiz-result').classList.add('hidden');
+            document.getElementById('quiz-total-num').innerText = quizQuestions.length;
+
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('btn-next-quiz').classList.add('hidden');
+            
+            const currentQuestion = quizQuestions[quizCurrentIndex];
+            document.getElementById('quiz-current-num').innerText = quizCurrentIndex + 1;
+            document.getElementById('quiz-category-tag').innerText = `分类: ${currentQuestion.category}`;
+            
+            const currentAcc = quizCurrentIndex > 0 ? Math.round((quizCorrectCount / quizCurrentIndex) * 100) : 0;
+            document.getElementById('quiz-accuracy').innerText = `${currentAcc}%`;
+
+            if (quizMode === 'mcq_en') {
+                document.getElementById('quiz-options').classList.remove('hidden');
+                document.getElementById('quiz-spelling').classList.add('hidden');
+                document.getElementById('quiz-question-text').innerText = currentQuestion.english;
+                renderMcqOptions(currentQuestion, 'zh');
+            } else if (quizMode === 'mcq_zh') {
+                document.getElementById('quiz-options').classList.remove('hidden');
+                document.getElementById('quiz-spelling').classList.add('hidden');
+                document.getElementById('quiz-question-text').innerText = currentQuestion.chinese;
+                renderMcqOptions(currentQuestion, 'en');
+            } else if (quizMode === 'spelling') {
+                document.getElementById('quiz-options').classList.add('hidden');
+                document.getElementById('quiz-spelling').classList.remove('hidden');
+                document.getElementById('quiz-question-text').innerText = currentQuestion.chinese;
+                
+                const input = document.getElementById('spelling-input');
+                input.value = '';
+                input.disabled = false;
+                input.focus();
+            }
+            lucide.createIcons();
+        }
+
+        function renderMcqOptions(correctWord, langType) {
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+
+            const distractors = VOCAB_DATA
+                .filter(w => w.id !== correctWord.id)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+
+            const options = [correctWord, ...distractors].sort(() => 0.5 - Math.random());
+
+            options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 font-semibold transition-all flex items-center justify-between";
+                btn.onclick = () => selectOption(btn, opt.id, correctWord.id);
+                
+                const text = langType === 'zh' ? opt.chinese : opt.english;
+                btn.innerHTML = `
+                    <span>${String.fromCharCode(65 + idx)}. &nbsp;&nbsp; ${text}</span>
+                    <span class="feedback-icon"></span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedBtn, selectedId, correctId) {
+            const container = document.getElementById('quiz-options');
+            container.querySelectorAll('button').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-slate-50', 'hover:border-slate-300');
+            });
+
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'bg-red-50', 'text-red-800');
+
+            if (selectedId === correctId) {
+                quizCorrectCount++;
+                selectedBtn.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold transition-all flex items-center justify-between";
+                selectedBtn.querySelector('.feedback-icon').innerHTML = `<i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>`;
+                
+                feedback.classList.add('bg-emerald-50', 'text-emerald-800');
+                feedback.innerHTML = "回答正确！您的测绘专业语感非常好！";
+            } else {
+                selectedBtn.className = "w-full text-left p-4 rounded-xl border-2 border-red-500 bg-red-50 text-red-800 font-bold transition-all flex items-center justify-between";
+                selectedBtn.querySelector('.feedback-icon').innerHTML = `<i data-lucide="x-circle" class="w-5 h-5 text-red-600"></i>`;
+                
+                container.querySelectorAll('button').forEach(btn => {
+                    const correctWord = quizQuestions[quizCurrentIndex];
+                    if (btn.innerText.includes(correctWord.chinese) || btn.innerText.includes(correctWord.english)) {
+                        btn.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold transition-all flex items-center justify-between";
+                        btn.querySelector('.feedback-icon').innerHTML = `<i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>`;
+                    }
+                });
+
+                feedback.classList.add('bg-red-50', 'text-red-800');
+                const correct = quizQuestions[quizCurrentIndex];
+                feedback.innerHTML = `回答错误。正确答案是: <span class="font-bold underline font-mono">${correct.english}</span> (${correct.chinese})`;
+            }
+
+            if (selectedId === correctId) {
+                learnedWords.add(correctId);
+                saveLocalStorage();
+                renderCategoryList();
+                renderCards();
+            }
+
+            feedback.classList.remove('hidden');
+            document.getElementById('btn-next-quiz').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function submitSpelling() {
+            const input = document.getElementById('spelling-input');
+            const answer = input.value.trim().toLowerCase();
+            const correctWord = quizQuestions[quizCurrentIndex];
+            const correctClean = correctWord.english.trim().toLowerCase();
+
+            input.disabled = true;
+
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'bg-red-50', 'text-red-800');
+
+            if (answer === correctClean) {
+                quizCorrectCount++;
+                feedback.classList.add('bg-emerald-50', 'text-emerald-800');
+                feedback.innerHTML = `拼写完全正确！<span class="font-bold font-mono">${correctWord.english}</span> - 令人赞叹的专业词汇记忆力。`;
+                
+                learnedWords.add(correctWord.id);
+                saveLocalStorage();
+                renderCategoryList();
+                renderCards();
+            } else {
+                feedback.classList.add('bg-red-50', 'text-red-800');
+                feedback.innerHTML = `拼写有误。您的拼写: <span class="line-through">${input.value}</span> &nbsp;&nbsp; 标准答案是: <span class="font-bold underline font-mono text-base">${correctWord.english}</span>`;
+            }
+
+            feedback.classList.remove('hidden');
+            document.getElementById('btn-next-quiz').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function skipSpelling() {
+            const correctWord = quizQuestions[quizCurrentIndex];
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.className = "p-4 rounded-xl text-sm font-semibold mb-6 bg-slate-50 text-slate-600";
+            feedback.innerHTML = `已跳过。标准正确拼写为: <span class="font-bold font-mono">${correctWord.english}</span>`;
+            
+            document.getElementById('spelling-input').disabled = true;
+            document.getElementById('quiz-feedback').classList.remove('hidden');
+            document.getElementById('btn-next-quiz').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function nextQuizQuestion() {
+            quizCurrentIndex++;
+            if (quizCurrentIndex < quizQuestions.length) {
+                loadQuizQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            document.getElementById('quiz-box').classList.add('hidden');
+            document.getElementById('quiz-result').classList.remove('hidden');
+
+            const acc = Math.round((quizCorrectCount / quizQuestions.length) * 100);
+
+            document.getElementById('result-correct').innerText = quizCorrectCount;
+            document.getElementById('result-total').innerText = quizQuestions.length;
+            document.getElementById('result-accuracy').innerText = `${acc}%`;
+        }
+
+        // ================= 经典文段阅读 =================
+        function renderArticleList() {
+            const container = document.getElementById('article-list');
+            container.innerHTML = '';
+
+            ARTICLE_DATA.forEach((art, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all border border-transparent ${
+                    currentArticleIndex === idx 
+                    ? 'bg-[#31572c] text-white shadow-md' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:border-slate-200'
+                }`;
+                btn.onclick = () => selectArticle(idx);
+                btn.innerText = art.title;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectArticle(idx) {
+            currentArticleIndex = idx;
+            renderArticleList();
+            renderArticleContent();
+        }
+
+        function renderArticleContent() {
+            const article = ARTICLE_DATA[currentArticleIndex];
+            document.getElementById('reader-title').innerText = article.title;
+
+            const container = document.getElementById('reader-content');
+            container.innerHTML = '';
+
+            article.paragraphs.forEach((p, pIdx) => {
+                const section = document.createElement('div');
+                section.className = "p-5 rounded-2xl bg-slate-50 hover:bg-emerald-50/20 border border-slate-100 transition-all space-y-3 relative group";
+                
+                const highlightedEn = highlightTextKeywords(p.en);
+
+                section.innerHTML = `
+                    <div class="space-y-2">
+                        <span class="text-[10px] bg-emerald-50 text-[#31572c] px-2 py-0.5 rounded-full font-black tracking-wider uppercase">Paragraph ${pIdx + 1}</span>
+                        <p class="text-base text-slate-700 leading-relaxed font-normal tracking-wide">${highlightedEn}</p>
+                    </div>
+                    
+                    <div id="trans-${pIdx}" class="pt-3 border-t border-dashed border-slate-200/60 text-slate-500 text-sm leading-relaxed hidden">
+                        <span class="text-[10px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-black tracking-wider uppercase mb-1.5 inline-block">中文对照</span>
+                        <p class="font-medium">${p.zh}</p>
+                    </div>
+
+                    <button onclick="toggleParagraphTranslation(${pIdx})" class="absolute bottom-4 right-4 p-1.5 bg-white border border-slate-100 rounded-lg text-slate-400 group-hover:text-[#31572c] shadow-sm hover:shadow transition-all" title="查看译文">
+                        <i data-lucide="languages" class="w-4 h-4"></i>
+                    </button>
+                `;
+                container.appendChild(section);
+            });
+            container.scrollTop = 0; // 切换文章时滚动回顶部
+            lucide.createIcons();
+        }
+
+        function toggleParagraphTranslation(pIdx) {
+            const el = document.getElementById(`trans-${pIdx}`);
+            el.classList.toggle('hidden');
+        }
+
+        function highlightTextKeywords(text) {
+            let temp = text;
+            
+            // 按字符长度降序排序，保障复合长词优先匹配高亮（防止先匹配了子字符串）
+            const sortedWords = [...VOCAB_DATA].sort((a, b) => b.english.length - a.english.length);
+            
+            sortedWords.forEach(word => {
+                // 利用正则单词边界(word boundary)和不区分大小写匹配，确保匹配完整英文单词
+                const pattern = new RegExp(`\\b(${word.english})\\b`, 'gi');
+                temp = temp.replace(pattern, (match) => {
+                    return `###HL_START###${match}|||${word.chinese}###HL_END###`;
+                });
+            });
+
+            // 统一解析保护符
+            temp = temp.replace(/###HL_START###(.*?)###HL_END###/g, (match, inner) => {
+                const parts = inner.split('|||');
+                const en = parts[0];
+                const zh = parts[1];
+                return `<span class="highlight-word" title="${zh}">${en}</span>`;
+            });
+
+            return temp;
+        }
+    </script>
+</body>
+</html>
